@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Grid3X3, Database, Share2, PlusSquare } from 'lucide-react';
+import { Home, Grid3X3, Database, Share2, PlusSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
@@ -14,10 +14,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    id: 'chat',
-    icon: MessageCircle,
-    label: 'Chat',
-    path: '/chat'
+    id: 'home',
+    icon: Home,
+    label: 'Home',
+    path: '/'
   },
   {
     id: 'dashboard',
