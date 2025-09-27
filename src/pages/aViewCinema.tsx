@@ -73,23 +73,21 @@ const CinemaView = () => {
   return (
     <div className={`min-h-screen bg-black ${isChatBottom ? 'flex flex-col' : 'flex'}`}>
       {/* Tela Principal - Cinema */}
-      <div className={`${isChatBottom ? 'h-3/5 min-h-[60vh]' : 'flex-1'} flex items-center justify-center p-4`}>
+      <div className={`${isChatBottom ? 'h-[60vh] flex-shrink-0' : 'flex-1'} flex items-center justify-center p-4 overflow-hidden`}>
         {mainMedia && mainMediaUrl ? (
-          <div className="w-full max-w-4xl">
+          <div className="w-full max-w-4xl h-full flex items-center justify-center">
             {mainMedia.type === 'video' ? (
               <video 
                 src={mainMediaUrl} 
                 controls 
                 autoPlay
-                className="w-full h-auto rounded-lg shadow-2xl"
-                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
+                className="w-full h-full max-h-full rounded-lg shadow-2xl object-contain"
               />
             ) : (
               <img 
                 src={mainMediaUrl} 
                 alt="Cinema Display" 
-                className="w-full h-auto rounded-lg shadow-2xl object-contain"
-                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
+                className="w-full h-full max-h-full rounded-lg shadow-2xl object-contain"
               />
             )}
           </div>
@@ -102,7 +100,7 @@ const CinemaView = () => {
       </div>
 
       {/* Chat Integrado */}
-      <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'border-l border-gray-800 w-1/3'} bg-gray-900`}>
+      <div className={`${isChatBottom ? 'h-[40vh] flex-shrink-0' : 'border-l border-gray-800 w-1/3'} bg-gray-900 overflow-hidden`}>
         <EnhancedChat 
           creatorId={creatorId}
           messages={messages}
