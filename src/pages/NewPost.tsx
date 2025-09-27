@@ -98,104 +98,59 @@ const NewPost = () => {
   // Carregar wishlist do criador para visitantes
   const { wishlistItems: creatorWishlistItems } = useCreatorWishlist(creatorId);
 
-  // Carregar dados do criador e suas mídias
+  // Carregar dados do criador e suas mídias com carregamento otimizado
   useEffect(() => {
     const loadCreatorData = async () => {
-      if (!creatorId || !isViewingCreatorPage) {
-        console.log('🚫 DEBUG: No valid creatorId provided for NewPost', {
-          creatorId,
-          isViewingCreatorPage
-        });
-        return;
-      }
-      console.log('📊 DEBUG: Loading creator data for:', creatorId);
+      if (!creatorId || !isViewingCreatorPage) return;
+      
       try {
-        // Verificar status de autenticação
-        const {
-          data: {
-            user
-          }
-        } = await supabase.auth.getUser();
-        console.log('👤 DEBUG: Current user auth status:', {
-          isLoggedIn: !!user,
-          userId: user?.id
-        });
+        // Carregamento rápido apenas do perfil essencial
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id, settings')
+          .eq('user_id', creatorId)
+          .single();
 
-        // Carregar perfil do criador
-        console.log('🔍 DEBUG: Fetching creator profile...');
-        const {
-          data: profileData,
-          error: profileError
-        } = await supabase.from('profiles').select('*').eq('user_id', creatorId).single();
         if (profileError) {
-          console.error('❌ DEBUG: Error loading creator profile:', profileError);
-          console.log('🔍 DEBUG: Profile error details:', {
-            code: profileError.code,
-            message: profileError.message,
-            details: profileError.details
-          });
-          toast.error('❌ Criador não encontrado');
+          console.error('Profile error:', profileError);
+          setPageVisibilityLoading(false);
           return;
         }
-        console.log('✅ DEBUG: Creator profile loaded:', profileData);
+
         setCreatorProfile(profileData);
 
-        // Check if page is private (only for non-creators)
+        // Verificar privacidade da página
         if (!isCreator) {
           const settings = (profileData?.settings as any) || {};
-          const pagePublic = settings.pagePublic !== false; // Default to true
+          const pagePublic = settings.pagePublic !== false;
           setIsPagePrivate(!pagePublic);
           
           if (!pagePublic) {
             setPageVisibilityLoading(false);
-            return; // Don't load media if page is private
+            return;
           }
         }
 
-        // Carregar mídias do criador
-        console.log('🎬 DEBUG: Fetching creator media items...');
-        const {
-          data: mediaData,
-          error: mediaError
-        } = await supabase.from('media_items').select('*').eq('user_id', creatorId).order('created_at', {
-          ascending: false
-        });
-        if (mediaError) {
-          console.error('❌ DEBUG: Error loading creator media:', mediaError);
-          console.log('🔍 DEBUG: Media error details:', {
-            code: mediaError.code,
-            message: mediaError.message,
-            details: mediaError.details,
-            hint: mediaError.hint
-          });
+        // Carregamento lazy das mídias (apenas as principais)
+        const { data: mediaData } = await supabase
+          .from('media_items')
+          .select('id, type, is_main, storage_path, is_blurred, price')
+          .eq('user_id', creatorId)
+          .eq('is_main', true)
+          .limit(1)
+          .single();
 
-          // Verificar se é erro de RLS
-          if (mediaError.code === '42501' || mediaError.message?.includes('policy')) {
-            console.log('🚫 DEBUG: RLS policy blocking media access for anonymous users');
-            toast.error('❌ Acesso às mídias bloqueado por política de segurança');
-          } else {
-            toast.error('❌ Erro ao carregar mídias do criador');
-          }
-          setMediaItems([]); // Garantir que não fique com dados antigos
-        } else {
-          console.log('✅ DEBUG: Media items loaded:', {
-            count: mediaData?.length || 0,
-            items: mediaData?.map(item => ({
-              id: item.id,
-              type: item.type,
-              is_main: item.is_main,
-              storage_path: item.storage_path?.substring(0, 50) + '...'
-            }))
-          });
-          setMediaItems(mediaData || []);
+        if (mediaData) {
+          setMediaItems([mediaData]);
         }
+
       } catch (error) {
-        console.error('💥 DEBUG: Unexpected error loading creator data:', error);
-        toast.error('❌ Erro ao carregar dados do criador');
+        console.error('Error loading creator data:', error);
       } finally {
         setPageVisibilityLoading(false);
       }
     };
+
     loadCreatorData();
   }, [creatorId, isViewingCreatorPage, isCreator]);
 
