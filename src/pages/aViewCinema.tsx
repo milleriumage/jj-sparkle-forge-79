@@ -102,8 +102,8 @@ const CinemaView = () => {
       </div>
 
       {/* Chat Integrado */}
-      <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'border-l border-gray-800 w-1/3'} bg-gray-900`}>
-        <EnhancedChat 
+      <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'fixed right-0 top-0 h-full border-l border-gray-800 w-1/3 z-20'} bg-gray-900`}>
+        <EnhancedChat
           creatorId={creatorId}
           messages={messages}
           onSendMessage={sendMessage}
