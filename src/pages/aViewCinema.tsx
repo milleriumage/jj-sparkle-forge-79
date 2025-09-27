@@ -10,6 +10,7 @@ const CinemaView = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [mainMedia, setMainMedia] = useState<any>(null);
   const [isChatBottom, setIsChatBottom] = useState(false);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
   
   // Use current logged user as creator
   useEffect(() => {
@@ -102,25 +103,27 @@ const CinemaView = () => {
       </div>
 
       {/* Chat Integrado */}
-      <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'fixed right-0 top-0 h-full border-l border-gray-800 w-1/3 z-20'} bg-gray-900 transition-all duration-300 overflow-x-auto overflow-y-auto`}>
-        <EnhancedChat 
-          creatorId={creatorId}
-          messages={messages}
-          onSendMessage={sendMessage}
-          onEditMessage={() => {}}
-          passwordProtected={false}
-          onPasswordVerify={() => {}}
-          onTrialCheck={() => true}
-          onSubtractCredits={() => {}}
-          credits={credits}
-          isLoggedIn={isLoggedIn}
-          visibilitySettings={{
-            showChatEditing: true,
-            showChatCloseIcon: false
-          }}
-          onPositionChange={setIsChatBottom}
-        />
-      </div>
+      {!isChatMinimized && (
+        <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'fixed right-0 top-0 h-full border-l border-gray-800 w-1/3 z-20'} bg-gray-900 transition-all duration-300 overflow-x-auto overflow-y-auto`}>
+          <EnhancedChat 
+            creatorId={creatorId}
+            messages={messages}
+            onSendMessage={sendMessage}
+            onEditMessage={() => {}}
+            passwordProtected={false}
+            onPasswordVerify={() => {}}
+            onTrialCheck={() => true}
+            onSubtractCredits={() => {}}
+            credits={credits}
+            isLoggedIn={isLoggedIn}
+            visibilitySettings={{
+              showChatEditing: true,
+              showChatCloseIcon: false
+            }}
+            onPositionChange={setIsChatBottom}
+          />
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       {!isChatBottom && (
