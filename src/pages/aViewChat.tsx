@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,7 +10,6 @@ import { useCreatorMessages } from "@/hooks/useCreatorMessages";
 import { useUserCredits } from "@/hooks/useUserCredits";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useVisibilitySettings } from "@/hooks/useVisibilitySettings";
-// Logo removida - usando nova logo inline
 import { EnhancedChat } from "@/components/EnhancedChat";
 import { MediaShowcase } from "@/components/MediaShowcase";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
@@ -38,6 +37,7 @@ import { ChatOverlayButton } from "@/components/ChatOverlayButton";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
+
 const UserView = () => {
   const { open } = useSidebar();
   
@@ -88,7 +88,7 @@ const UserView = () => {
   const [isPagePrivate, setIsPagePrivate] = useState(false);
   const [pageVisibilityLoading, setPageVisibilityLoading] = useState(true);
   
-  // Social media icons - usar o creatorId para buscar os dados do criador da pÃ¡gina
+  // Social media icons - usar o creatorId para buscar os dados do criador da página
   const { socialNetworks, updateSocialNetwork, addSocialNetwork, deleteSocialNetwork, isLoading } = useCreatorSocialIcons(creatorId);
   
   // Sistema de seguidores
@@ -97,104 +97,74 @@ const UserView = () => {
   // Carregar wishlist do criador para visitantes
   const { wishlistItems: creatorWishlistItems } = useCreatorWishlist(creatorId);
 
-  // Carregar dados do criador e suas mÃ­dias
+  // Carregar dados do criador e suas mídias - OTIMIZADO
   useEffect(() => {
     const loadCreatorData = async () => {
       if (!creatorId || !isViewingCreatorPage) {
-        console.log('ðŸš« DEBUG: No valid creatorId provided for UserView', {
-          creatorId,
-          isViewingCreatorPage
-        });
+        setPageVisibilityLoading(false);
         return;
       }
-      console.log('ðŸ“Š DEBUG: Loading creator data for:', creatorId);
+      
       try {
-        // Verificar status de autenticaÃ§Ã£o
-        const {
-          data: {
-            user
-          }
-        } = await supabase.auth.getUser();
-        console.log('ðŸ‘¤ DEBUG: Current user auth status:', {
-          isLoggedIn: !!user,
-          userId: user?.id
-        });
-
-        // Carregar perfil do criador
-        console.log('ðŸ” DEBUG: Fetching creator profile...');
+        // Carregar apenas dados essenciais primeiro para carregamento rápido
         const {
           data: profileData,
           error: profileError
-        } = await supabase.from('profiles').select('*').eq('user_id', creatorId).single();
+        } = await supabase.from('profiles')
+          .select('user_id, display_name, bio, settings')
+          .eq('user_id', creatorId)
+          .single();
+        
         if (profileError) {
-          console.error('âŒ DEBUG: Error loading creator profile:', profileError);
-          console.log('ðŸ” DEBUG: Profile error details:', {
-            code: profileError.code,
-            message: profileError.message,
-            details: profileError.details
-          });
-          toast.error('âŒ Criador nÃ£o encontrado');
+          console.error('Error loading creator profile:', profileError);
+          toast.error('❌ Criador não encontrado');
+          setPageVisibilityLoading(false);
           return;
         }
-        console.log('âœ… DEBUG: Creator profile loaded:', profileData);
+        
         setCreatorProfile(profileData);
 
         // Check if page is private (only for non-creators)
         if (!isCreator) {
           const settings = (profileData?.settings as any) || {};
-          const pagePublic = settings.pagePublic !== false; // Default to true
+          const pagePublic = settings.pagePublic !== false;
           setIsPagePrivate(!pagePublic);
           
           if (!pagePublic) {
             setPageVisibilityLoading(false);
-            return; // Don't load media if page is private
+            return;
           }
         }
 
-        // Carregar mÃ­dias do criador
-        console.log('ðŸŽ¬ DEBUG: Fetching creator media items...');
-        const {
-          data: mediaData,
-          error: mediaError
-        } = await supabase.from('media_items').select('*').eq('user_id', creatorId).order('created_at', {
-          ascending: false
-        });
-        if (mediaError) {
-          console.error('âŒ DEBUG: Error loading creator media:', mediaError);
-          console.log('ðŸ” DEBUG: Media error details:', {
-            code: mediaError.code,
-            message: mediaError.message,
-            details: mediaError.details,
-            hint: mediaError.hint
-          });
+        // Carregamento instantâneo da UI
+        setPageVisibilityLoading(false);
 
-          // Verificar se Ã© erro de RLS
-          if (mediaError.code === '42501' || mediaError.message?.includes('policy')) {
-            console.log('ðŸš« DEBUG: RLS policy blocking media access for anonymous users');
-            toast.error('âŒ Acesso Ã s mÃ­dias bloqueado por polÃ­tica de seguranÃ§a');
-          } else {
-            toast.error('âŒ Erro ao carregar mÃ­dias do criador');
+        // Carregar mídias de forma assíncrona e otimizada
+        setTimeout(async () => {
+          try {
+            const {
+              data: mediaData,
+              error: mediaError
+            } = await supabase.from('media_items')
+              .select('id, type, storage_path, is_main, is_blurred, price, description, created_at')
+              .eq('user_id', creatorId)
+              .order('created_at', { ascending: false })
+              .limit(10); // Limitar para melhor performance
+            
+            if (!mediaError && mediaData) {
+              setMediaItems(mediaData);
+            }
+          } catch (error) {
+            console.error('Error loading media:', error);
           }
-          setMediaItems([]); // Garantir que nÃ£o fique com dados antigos
-        } else {
-          console.log('âœ… DEBUG: Media items loaded:', {
-            count: mediaData?.length || 0,
-            items: mediaData?.map(item => ({
-              id: item.id,
-              type: item.type,
-              is_main: item.is_main,
-              storage_path: item.storage_path?.substring(0, 50) + '...'
-            }))
-          });
-          setMediaItems(mediaData || []);
-        }
+        }, 50); // Delay mínimo para UI responsiva
+        
       } catch (error) {
-        console.error('ðŸ’¥ DEBUG: Unexpected error loading creator data:', error);
-        toast.error('âŒ Erro ao carregar dados do criador');
-      } finally {
+        console.error('Unexpected error loading creator data:', error);
         setPageVisibilityLoading(false);
       }
     };
+    
     loadCreatorData();
   }, [creatorId, isViewingCreatorPage, isCreator]);
 
@@ -210,7 +180,7 @@ const UserView = () => {
       setShowSuccessNotification(true);
       addCredits(creditsAmount);
 
-      // Limpar parÃ¢metros da URL
+      // Limpar parâmetros da URL
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('payment_success');
       newSearchParams.delete('credits');
@@ -223,7 +193,7 @@ const UserView = () => {
       setShowSubscriptionSuccess(true);
       checkSubscription(); // Refresh subscription status
 
-      // Limpar parÃ¢metros da URL
+      // Limpar parâmetros da URL
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('subscription_success');
       newSearchParams.delete('plan');
@@ -243,21 +213,21 @@ const UserView = () => {
     id: 'basic',
     title: 'Basic',
     price: '$9.99/month',
-    description: ['â€¢ Unlimited chat', 'â€¢ Basic content access'],
+    description: ['• Unlimited chat', '• Basic content access'],
     link: '',
     stripeProductId: 'prod_SkHR3k5moylM8t'
   }, {
     id: 'pro',
     title: 'Pro',
     price: '$19.99/month',
-    description: ['â€¢ Everything in Basic', 'â€¢ Exclusive content', 'â€¢ VIP interaction'],
+    description: ['• Everything in Basic', '• Exclusive content', '• VIP interaction'],
     link: '',
     stripeProductId: 'prod_SkHY1XdCaL1NZY'
   }, {
     id: 'vip',
     title: 'VIP',
     price: '$39.99/month',
-    description: ['â€¢ Everything in Pro', 'â€¢ Full access', 'â€¢ Private chat'],
+    description: ['• Everything in Pro', '• Full access', '• Private chat'],
     link: '',
     stripeProductId: 'prod_SkHcmX6aKWG7yi'
   }]);
@@ -270,7 +240,7 @@ const UserView = () => {
     const shareUrl = `${window.location.origin}/user/${rawCreatorId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("ðŸ”— Link copiado para a Ã¡rea de transferÃªncia!");
+      toast.success("🔗 Link copiado para a área de transferência!");
     } catch {
       if ((navigator as any).share) {
         try {
@@ -281,7 +251,7 @@ const UserView = () => {
           return;
         } catch {}
       }
-      toast.error("âŒ NÃ£o foi possÃ­vel copiar o link");
+      toast.error("❌ Não foi possível copiar o link");
     }
   };
   const mainMedia = mediaItems.find(item => item.is_main) || {
@@ -295,16 +265,17 @@ const UserView = () => {
     if (item.link) {
       window.open(item.link, '_blank');
     } else if (item.is_blurred || item.price) {
-      toast.info("ðŸ”’ ConteÃºdo premium! Assine para ter acesso.");
+      toast.info("🔒 Conteúdo premium! Assine para ter acesso.");
     }
   };
+  
   // Show loading or private page message
   if (pageVisibilityLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary to-background p-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando pÃ¡gina...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando página...</p>
         </div>
       </div>
     );
@@ -360,7 +331,7 @@ const UserView = () => {
       {/* Main content area */}
       <div className="max-w-6xl mx-auto space-y-4">
         
-        {/* Header simplificado para usuÃ¡rios */}
+        {/* Header simplificado para usuários */}
         {creditsVisible && (
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-4 sm:gap-2">
             
@@ -409,41 +380,46 @@ const UserView = () => {
           </div>
         )}
 
-        {/* MÃ­dia principal - usuÃ¡rios podem ver mas com restriÃ§Ãµes */}
+        {/* Mídia principal - usuários podem ver mas com restrições */}
         {visibilitySettings.showMainMediaDisplay && (
           <div className="relative">
-            {mainMedia.type === 'video' ? <video 
-              src={mainMediaUrl} 
-              poster={mainMediaUrl}
-              preload="metadata"
-              muted
-              playsInline
-              controls 
-              className={`w-full max-h-80 md:max-h-96 lg:max-h-[500px] object-contain rounded-lg cursor-pointer ${mainMedia.is_blurred ? 'blur-md' : ''}`} 
-              onClick={() => handleMediaClick(mainMedia)} 
-              title={(mainMedia as any).description || "Main display"} /> : <img src={mainMediaUrl} alt="Streamer" className={`w-full max-h-80 md:max-h-96 lg:max-h-[500px] object-contain rounded-lg cursor-pointer ${mainMedia.is_blurred ? 'blur-md' : ''}`} onClick={() => handleMediaClick(mainMedia)} title={(mainMedia as any).description || "Main display"} />}
-            {/* Não mostrar texto de preço na tela principal - {mainMedia.is_blurred && mainMedia.price && <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-foreground/70 text-background font-bold px-4 py-2 rounded-lg text-lg">
-                  ðŸ”’ Buy Now {mainMedia.price}
-                </div>
-              </div>} */}
+            {mainMedia.type === 'video' ? 
+              <video 
+                src={mainMediaUrl} 
+                poster={mainMediaUrl}
+                preload="metadata"
+                muted
+                playsInline
+                controls 
+                className={`w-full max-h-80 md:max-h-96 lg:max-h-[500px] object-contain rounded-lg cursor-pointer ${mainMedia.is_blurred ? 'blur-md' : ''}`} 
+                onClick={() => handleMediaClick(mainMedia)} 
+                title={(mainMedia as any).description || "Main display"} 
+              /> : 
+              <img 
+                src={mainMediaUrl} 
+                alt="Streamer" 
+                className={`w-full max-h-80 md:max-h-96 lg:max-h-[500px] object-contain rounded-lg cursor-pointer ${mainMedia.is_blurred ? 'blur-md' : ''}`} 
+                onClick={() => handleMediaClick(mainMedia)} 
+                title={(mainMedia as any).description || "Main display"} 
+              />
+            }
           </div>
         )}
 
-        {/* Showcase de mÃ­dia - controlado pelas configuraÃ§Ãµes de visibilidade */}
+        {/* Showcase de mídia - controlado pelas configurações de visibilidade */}
         {(() => {
-        if (import.meta.env.DEV) console.log('ðŸ‘ï¸ DEBUG: Media showcase visibility check:', {
+        if (import.meta.env.DEV) console.log('👁️ DEBUG: Media showcase visibility check:', {
           showVitrine: visibilitySettings.showVitrine,
           showMediaToVisitors: visibilitySettings.showMediaToVisitors,
           mediaItemsCount: mediaItems.length,
           hasCreatorProfile: !!creatorProfile
         });
-        return visibilitySettings.showVitrine ? <MediaShowcase mediaItems={mediaItems} onUploadImage={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode fazer upload!")} onUploadVideo={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode fazer upload!")} onReplaceMedia={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode editar!")} onUpdateMedia={() => {}} onDeleteMedia={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode deletar!")} onSetAsMain={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode editar!")} onEditMedia={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode editar!")} onSetPrice={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode editar!")} onSetLink={canEdit ? () => toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!") : () => toast.info("ðŸ”’ Apenas o criador pode editar!")} passwordProtected={false} onPasswordVerify={() => {}} credits={isLoggedIn ? credits : 0} onAddCredits={addCredits} onSubtractCredits={async () => {
+        return visibilitySettings.showVitrine ? <MediaShowcase mediaItems={mediaItems} onUploadImage={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode fazer upload!")} onUploadVideo={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode fazer upload!")} onReplaceMedia={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode editar!")} onUpdateMedia={() => {}} onDeleteMedia={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode deletar!")} onSetAsMain={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode editar!")} onEditMedia={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode editar!")} onSetPrice={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode editar!")} onSetLink={canEdit ? () => toast.info("🔒 Funcionalidade não implementada para visitantes!") : () => toast.info("🔒 Apenas o criador pode editar!")} passwordProtected={false} onPasswordVerify={() => {}} credits={isLoggedIn ? credits : 0} onAddCredits={addCredits} onSubtractCredits={async () => {
           if (!canEdit) {
-            toast.info("ðŸ”’ Apenas o criador pode usar crÃ©ditos!");
+            toast.info("🔒 Apenas o criador pode usar créditos!");
             return false;
           }
-          toast.info("ðŸ”’ Funcionalidade nÃ£o implementada para visitantes!");
+          toast.info("🔒 Funcionalidade não implementada para visitantes!");
           return false;
         }} visibilitySettings={{
           showUploadButtons: visibilitySettings.showUploadButtons,
@@ -455,7 +431,7 @@ const UserView = () => {
         }} creatorId={creatorId} /> : <Card className="p-6 text-center">
               <div className="space-y-2">
                 <EyeOff className="w-8 h-8 mx-auto text-muted-foreground" />
-                <h3 className="font-medium text-muted-foreground">Vitrine de MÃ­dia Oculta</h3>
+                <h3 className="font-medium text-muted-foreground">Vitrine de Mídia Oculta</h3>
                 <p className="text-sm text-muted-foreground">
                   O criador optou por manter a vitrine privada para visitantes.
                 </p>
@@ -465,15 +441,15 @@ const UserView = () => {
 
         <Card className="p-4 bg-card border">
           <div className="flex flex-col items-center mb-4">
-            {/* Ãcones de redes sociais - removido seÃ§Ã£o duplicada, jÃ¡ incluÃ­do no MediaShowcase */}
+            {/* Ícones de redes sociais - removido seção duplicada, já incluído no MediaShowcase */}
           </div>
           
-          {/* Chat para usuÃ¡rios - ediÃ§Ã£o controlada pelas configuraÃ§Ãµes de visibilidade */}
+          {/* Chat para usuários - edição controlada pelas configurações de visibilidade */}
           {visibilitySettings.showChat && (
             <EnhancedChat 
               messages={messages} 
               onSendMessage={sendMessage} 
-              onEditMessage={() => toast.info("ðŸ”’ Apenas criadores podem editar mensagens!")} 
+              onEditMessage={() => toast.info("🔒 Apenas criadores podem editar mensagens!")} 
               passwordProtected={false} 
               onPasswordVerify={() => {}} 
               creatorId={creatorId}
@@ -552,4 +528,3 @@ const UserView = () => {
   );
 };
 export default UserView;
-
