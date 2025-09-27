@@ -74,7 +74,7 @@ const CinemaView = () => {
   return (
     <div className={`min-h-screen bg-black ${isChatBottom ? 'flex flex-col' : 'flex'}`}>
       {/* Tela Principal - Cinema */}
-      <div className={`${isChatBottom ? 'h-3/5 min-h-[60vh]' : 'w-full'} flex items-center justify-center p-4`}>
+      <div className={`${isChatBottom ? 'flex-1 min-h-[70vh]' : 'w-full'} flex items-center justify-center p-4`}>
         {mainMedia && mainMediaUrl ? (
           <div className="w-full max-w-4xl">
             {mainMedia.type === 'video' ? (
@@ -83,14 +83,14 @@ const CinemaView = () => {
                 controls 
                 autoPlay
                 className="w-full h-auto rounded-lg shadow-2xl"
-                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
+                style={{ maxHeight: isChatBottom ? '65vh' : '80vh' }}
               />
             ) : (
               <img 
                 src={mainMediaUrl} 
                 alt="Cinema Display" 
                 className="w-full h-auto rounded-lg shadow-2xl object-contain"
-                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
+                style={{ maxHeight: isChatBottom ? '65vh' : '80vh' }}
               />
             )}
           </div>
