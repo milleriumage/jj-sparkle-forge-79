@@ -73,7 +73,7 @@ const CinemaView = () => {
   return (
     <div className={`min-h-screen bg-black ${isChatBottom ? 'flex flex-col' : 'flex'}`}>
       {/* Tela Principal - Cinema */}
-      <div className={`${isChatBottom ? 'flex-1' : 'flex-1'} flex items-center justify-center p-4`}>
+      <div className={`${isChatBottom ? 'flex-1 min-h-0' : 'flex-1'} flex items-center justify-center p-4`}>
         {mainMedia && mainMediaUrl ? (
           <div className="w-full max-w-4xl">
             {mainMedia.type === 'video' ? (
@@ -82,14 +82,14 @@ const CinemaView = () => {
                 controls 
                 autoPlay
                 className="w-full h-auto rounded-lg shadow-2xl"
-                style={{ maxHeight: isChatBottom ? '60vh' : '80vh' }}
+                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
               />
             ) : (
               <img 
                 src={mainMediaUrl} 
                 alt="Cinema Display" 
                 className="w-full h-auto rounded-lg shadow-2xl object-contain"
-                style={{ maxHeight: isChatBottom ? '60vh' : '80vh' }}
+                style={{ maxHeight: isChatBottom ? '50vh' : '80vh' }}
               />
             )}
           </div>
@@ -102,7 +102,7 @@ const CinemaView = () => {
       </div>
 
       {/* Chat Integrado */}
-      <div className={`${isChatBottom ? '' : 'border-l border-gray-800'} bg-gray-900`}>
+      <div className={`${isChatBottom ? 'flex-shrink-0 h-1/2' : 'border-l border-gray-800 w-1/3'} bg-gray-900`}>
         <EnhancedChat 
           creatorId={creatorId}
           messages={messages}
@@ -123,9 +123,11 @@ const CinemaView = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
-        <BottomNavigation />
-      </div>
+      {!isChatBottom && (
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <BottomNavigation />
+        </div>
+      )}
     </div>
   );
 };
